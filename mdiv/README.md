@@ -65,7 +65,7 @@ nasm -f elf64 -w+all -w+error -o mdiv.o mdiv.asm
 
 # Grading Criteria for `mdiv.asm`
 
-## Automatic Tests (Max 7 points)
+## Automatic Tests
 
 - Correctness of results
 - ABI compliance
@@ -77,7 +77,7 @@ nasm -f elf64 -w+all -w+error -o mdiv.o mdiv.asm
 
 ---
 
-## Code Formatting and Quality (Max 3 points)
+## Code Formatting and Quality
 
 ### Formatting Rules
 
