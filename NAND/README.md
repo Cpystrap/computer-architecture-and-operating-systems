@@ -1,4 +1,4 @@
-# NAND gates — library task
+# NAND gates
 
 This repository contains an implementation of a **dynamically loadable C library** that models combinational Boolean circuits built from NAND gates.  
 
