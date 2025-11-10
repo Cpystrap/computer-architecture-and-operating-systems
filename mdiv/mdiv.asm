@@ -2,65 +2,64 @@ section	.text
     global mdiv     
 	
 mdiv:	                          
-    mov r8, rdx                   ; zapisuje dzielnik (y) w r8, 
-                                  ; podany wczesniej w rdx
-    mov r9, 1                     ; powie mi czy dzielna jest ujemna 
-    ; 0 - ujemna, 1 - dodatnia, gdy y = 0 mamy special case
-    mov r10, 1                    ; powie mi czy dzielnik jest ujemny
+    mov r8, rdx                   ; I store divider (y) in r8,
+                                  ; given before in rdx
+    mov r9, 1                     ; will tell me if dividend is negative
+    ; 0 - negative, 1 - positive, when y = 0 we've got a special case
+    mov r10, 1                    ; will tell me if divider is negative
 
-    ; pierwszy bit (ostatniej komorki) powie czy cala jest dodatnia czy
-    ; ujemna
+    ; first bit (of the last cell) will tell me if the whole is positive
+    ; or negative
     mov r11, [rdi + rsi*8 - 8]
-    test r11, r11                 ; jesli dzielna jest ujemna,
-    js negation_array             ; wpp kontynuuj
+    test r11, r11                 ; if dividend is negative,
+    js negation_array             ; else continue
 
 check_divisor:
-    ; sprawdzam pierwszy bit dzielnika czy ujemny czy dodatni (czyli znak)
+    ; I check first bit of divider whether it's negative or positive (the sign)
     test r8, r8
-    js negation_divisor           ; jesli ujemny dzielnik, a jesli nie to:
-    ; teraz pora ustawic rcx i rdx i przechodzimy do glownego algorytmu
+    js negation_divisor           ; if the divisor is negative, otherwise: 
+	; now it’s time to set rcx and rdx, and then move on to the main algorithm.
 
 loop_main_prepair:
-    mov rcx, rsi                  ; liczba n znajduje sie w rsi, 
-                                  ; daje do rcx dla petli
-    mov rdx, 0                    ; *poczatkowo reszta wynosi 0 
-    ; o co chodzi z reszta? Moj algorytm dziala tak, ze dzieli 
-    ; kolejne komorki tablicy, iloraz zapisuje do tablicy zgodnie z poleceniem
-    ; natomiast reszte daje do rdx, do rax kolejna komorke tablicy i wykonuje
-    ; dzielenie, reszta do rdx, kolejna komorka do rax itd. Poczatkowo dzielac
-    ; pierwsza komorke nie ma oczywiscie reszty z dzielenia poprzedniej
+    mov rcx, rsi                  ; the number n is in rsi, 
+								  ; move it to rcx for the loop
+    mov rdx, 0                    ; initially the remainder is 0
+	; what does “remainder” mean? My algorithm works in such a way that it divides
+	; consecutive cells of the array — it stores the quotient in the array as required,
+	; and places the remainder in rdx. Then it loads the next array element into rax
+	; and performs the division again: the remainder goes to rdx, the next cell to rax, and so on.
+	; When dividing the first element, of course, there is no remainder from any previous division.
 
 loop_main:
-    mov rax, [rdi + rcx*8 - 8]    ; do rax wstawiam komorke tablicy 
-                                  ; poczatkowo ostatnia potem przedost.. itd.
-    div r8                        ; dziele pare rdx:rax przez y
-    ; reszta jest w rdx, iloraz w rax
-    mov [rdi + rcx*8 - 8], rax    ; iloraz do tablicy x, do aktualnej komorki
+    mov rax, [rdi + rcx*8 - 8]    ; put the array element into rax
+	; initially the last one, then the second to last, and so on.
+    div r8                        ; divide the pair rdx:rax by y
+	; the remainder is stored in rdx, and the quotient in rax
+    mov [rdi + rcx*8 - 8], rax    ; store the quotient into the array x, in the current cell
 
-    dec rcx                       ; zmniejszam loop countera                    
-    jnz loop_main                 ; i tak n razy wykonuje petle
-                                  ; poki rcx != 0
+    dec rcx                       ; decrease the loop counter
+    jnz loop_main                 ; and so the loop is executed n times
+	; as long as rcx != 0
 
     cmp r9, 1 
-    je check_second_condition     ; dzielna jest dodatnia
+    je check_second_condition     ; dividend is positive
 
     cmp r10, 1  
-    je negation_array             ; r9 bylo rowne 0, zatem jesli r10 = 1 
-                                  ; to nalezy zamienic iloraz na przeciwny
+    je negation_array             ; r9 was equal to 0, therefore if r10 = 1
+	; the quotient must be negated (changed to its opposite sign)
 
-    ; r9 = 0 i r10 = 0, zatem reszta powinna byc ujemna, iloraz dodatni
+    ; r9 = 0 and r10 = 0, therefore the remainder should be negative, and the quotient positive
     jmp negation_rest
 
-negation_array:                   ; odwraca liczbe na przeciwna
-    ; zaczynam od 1. komorki, najmniej znaczacych bitow
-    ; warto zrozumiec ze etykieta ta jest wywolywana w dwoch przypadkach:
-    ; na poczatku gdy podana dzielna jest ujemna to nalezy zamienic ja na
-    ; dodatnia (zeby div dobrze zadzialal), a w drugim przypadku gdy
-    ; iloraz zapisany w x powinien byc ujemny. W 1. przypadku r9 ustawione
-    ; jest na 1 i nalezy zmienic je na 0 gdyz dzielna jest ujemna, gdy 
-    ; natomiast przed podaniem wyniku okaze sie ze zaszedl przypadek,
-    ; w ktorym iloraz powinien byc ujemny, na pewno chodz jeden z rejestrow 
-    ; r9 i r10 musi byc rowny 0 (dzielnik xor dzielna byla/byl ujemna/y)
+negation_array:                   ; negates the number (changes it to its opposite)
+	; starts from the first array cell, the least significant bits
+	; it’s important to understand that this label is called in two cases:
+	; first, at the beginning when the given dividend is negative, it must be changed to positive
+	; (so that div works correctly), and second, when the quotient stored in x should be negative.
+	; In the first case, r9 is set to 1 and must be changed to 0 because the dividend is negative.
+	; In the second case, before outputting the result, if it turns out that the quotient should be negative,
+	; then at least one of the registers r9 or r10 must be 0
+	; (because the divisor XOR dividend was negative).
     not qword [rdi]               ; negacja bitow
     add qword [rdi], 1            ; zwieksz o 1
     setc r11b                     ; r11b = 1 gdy nastapilo przeniesienie 
@@ -132,4 +131,5 @@ is_minimal:
     jne check_divisor
 
     xor r8, r8                    ; zwykle dzielenie przez 0 zeby dostac
+
     div r8                        ; SIGFPE
